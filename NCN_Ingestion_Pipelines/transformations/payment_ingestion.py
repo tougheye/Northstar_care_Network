@@ -1,3 +1,4 @@
+import re
 from pyspark import pipelines as dp
 from pyspark.sql import functions as F
 
@@ -5,11 +6,12 @@ from pyspark.sql import functions as F
 volume_path = spark.conf.get("payment_data_volume")
 
 @dp.table(
-    name="payment_data_bronze",
+    name="northstar_network_bronze.payment_data_bronze.payment_data_bronze",
     partition_cols=["Covered_Recipient_Specialty_1"],
     table_properties={
         "delta.appendOnly": "false",
-        "pipelines.reset.allowed": "true"
+        "pipelines.reset.allowed": "true",
+        "delta.columnMapping.mode": "name"
     }
 )
 
@@ -30,4 +32,3 @@ def payment_data_bronze():
 
     return payment_bronze_df
         
-
