@@ -41,7 +41,38 @@ FROM northstar_network_bronze.cms_provider_specialty.api_ingestion_table as A
 
 -- COMMAND ----------
 
-DESCRIBE EXTENDED northstar_network_bronze.cms_provider_specialty.api_ingestion_table
+SELECT COUNT(*) 
+FROM northstar_network_bronze.payment_data_bronze.payment_data_bronze 
+
+-- COMMAND ----------
+
+Select * FROM northstar_network_bronze.excluded_indiv_bronze.excluded_indiv_data_table
+
+-- COMMAND ----------
+
+SELECT SUM(t.county_count)
+FROM (SELECT Bus_Zip, COUNT(DISTINCT(County)) AS county_count
+        FROM northstar_catalog_silver.payment_data_silver.payment_data_silver
+        GROUP BY Bus_Zip
+        HAVING COUNT(DISTINCT(County)) > 1) as t
+
+
+-- COMMAND ----------
+
+SELECT count(*) AS total_count,
+    (SELECT COUNT(*) 
+    FROM northstar_network_bronze.payment_data_bronze.payment_data_bronze           
+    WHERE try_cast(Total_Amount_of_Payment_USDollars AS FLOAT) > 0 ) AS count_positive_payment,
+
+    (SELECT COUNT(*) 
+    FROM northstar_network_bronze.payment_data_bronze.payment_data_bronze           
+    WHERE try_cast(Total_Amount_of_Payment_USDollars AS FLOAT) = 0 ) AS count_zero_payment,
+
+    (SELECT count(*) 
+    FROM northstar_network_bronze.payment_data_bronze.payment_data_bronze           --28 null payments
+    WHERE Total_Amount_of_Payment_USDollars IS NULL) AS null_payment
+FROM northstar_network_bronze.payment_data_bronze.payment_data_bronze;           
+
 
 -- COMMAND ----------
 
