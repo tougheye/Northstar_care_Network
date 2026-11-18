@@ -1,4 +1,12 @@
 -- Databricks notebook source
+DESCRIBE HISTORY northstar_network_bronze.payment_data_bronze.payment_data_bronze LIMIT 5
+
+-- COMMAND ----------
+
+select * from _sqldf
+
+-- COMMAND ----------
+
 SELECT 
     min(A.Total_Amount_of_Payment_USDollars) AS minimum_payment, 
     max(A.Total_Amount_of_Payment_USDollars) AS maximum_payment, 
@@ -41,12 +49,73 @@ FROM northstar_network_bronze.cms_provider_specialty.api_ingestion_table as A
 
 -- COMMAND ----------
 
+SELECT COUNT(*)
+FROM northstar_catalog_silver.payment_data_silver.payment_data_silver
+
+-- COMMAND ----------
+
 SELECT COUNT(*) 
 FROM northstar_network_bronze.payment_data_bronze.payment_data_bronze 
 
 -- COMMAND ----------
 
-Select * FROM northstar_network_bronze.excluded_indiv_bronze.excluded_indiv_data_table
+DESCRIBE EXTENDED northstar_network_bronze.excluded_indiv_bronze.excluded_indiv_data_table
+
+-- COMMAND ----------
+
+SELECT * FROM system.billing.usage
+
+-- COMMAND ----------
+
+SELECT SPECIALTY, COUNT(*) 
+FROM northstar_network_bronze.excluded_indiv_bronze.excluded_indiv_data_table
+GROUP BY SPECIALTY
+ORDER BY COUNT(*) DESC
+
+-- COMMAND ----------
+
+-- MAGIC %python
+-- MAGIC count = spark.table("northstar_catalog_silver.exclude_indiv_silver.exclude_indiv_silver").select("SPECIALTY").distinct().count()
+-- MAGIC expected_count = spark.table("northstar_network_bronze.excluded_indiv_bronze.excluded_indiv_data_table").select("SPECIALTY").distinct().count() - 4
+-- MAGIC print(expected_count, count)
+-- MAGIC
+-- MAGIC assert count == expected_count
+-- MAGIC print("Unit test passed.")
+
+-- COMMAND ----------
+
+SELECT * 
+FROM northstar_network_bronze.cms_provider_compare.cms_prov_comp_ingest_data
+
+-- COMMAND ----------
+
+SELECT count(*)
+FROM 
+    (SELECT  cpcid.NPI, cpcid.Ind_PAC_ID, cpcid.Ind_enrl_ID, COUNT(*) AS COUNT
+    FROM northstar_network_bronze.cms_provider_compare.cms_prov_comp_ingest_data AS cpcid
+    GROUP BY cpcid.NPI, cpcid.Ind_PAC_ID, cpcid.Ind_enrl_ID) AS t
+
+
+-- COMMAND ----------
+
+SELECT COUNT(*)
+FROM northstar_catalog_silver.cms_prov_comp_silver.prov_comp_mv
+
+-- COMMAND ----------
+
+SELECT COUNT(*) AS total_count, COUNT(DISTINCT(NPI)) AS total_npi
+FROM northstar_network_bronze.cms_provider_compare.cms_prov_comp_ingest_data
+
+
+-- COMMAND ----------
+
+SELECT
+  COUNT(*) AS total,
+  COUNT_IF(COALESCE(TRY_CAST(NPI AS BIGINT), 0) >  0) AS with_npi,
+  COUNT_IF(COALESCE(TRY_CAST(NPI AS BIGINT), 0) =  0) AS without_npi,
+  COUNT_IF(NPI IS NULL) AS with_npi_null
+FROM northstar_network_bronze.excluded_indiv_bronze.excluded_indiv_data_table
+WHERE SPECIALTY = "CLERK/OTHER CLERICAL";
 
 -- COMMAND ----------
 
@@ -109,21 +178,7 @@ DESCRIBE EXTENDED northstar_network_bronze.nppes_data.npi_bronze
 
 -- COMMAND ----------
 
-SHOW TBLPROPERTIES northstar_network_bronze.nppes_data.npi_bronze;
-
--- COMMAND ----------
-
-SELECT COUNT(*) 
-FROM read_files(
-  '/Volumes/northstar_network_bronze/nppes_data/nppes_data_storage/part_aa.csv',
-  format => 'csv',
-  header => true
-)
-
-
--- COMMAND ----------
-
-select count(*)
+select *
 from northstar_network_bronze.excluded_indiv_bronze.excluded_indiv_data_table
 
 -- COMMAND ----------
@@ -143,3 +198,11 @@ SET TBLPROPERTIES (delta.appendOnly = false);
 SELECT * 
 FROM northstar_network_bronze.cms_provider_specialty.api_ingestion_table as A
 -- GROUP BY A.Rndrng_Prvdr_Type;
+
+-- COMMAND ----------
+
+SET TAG ON TABLE workspace.bookstore_etl_pro.bronze project = bookstore;
+
+-- COMMAND ----------
+
+SELECT * FROM northstar_catalog_silver.payment_data_silver.payment_data_silver_profile_metrics
